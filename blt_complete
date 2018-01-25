@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Place this script in /etc/bash_completion.d/
+# Source file in .profile(OSX) or .bashrc(Linux)
+# echo "source /etc/bash_completion.d/blt >> ~/(.profile|.bashrc)
+
+_blt()
+{
+    
+    # LOCAL VARS
+    # NEEDED BY COMPGEN AND COMPREPLY()
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # COMMAND MAP
+    # STORES MAIN COMMANDS
+    # EX: --build --eclipse
+    declare -A CMAP
+    
+    # ARGUMENT MAP
+    # STORES ARGUMENTS TO MAIN COMMMANDS
+    # EX: pre post compile
+    declare -A AMAP
+
+    # MAIN GLOBAL OPTS
+    # ALL MAIN COMMANDS AVAILABLE TO AUTOMPLETE
+    AMAP[--eclipse]="--eclipse"
+    AMAP[--config]="--config"
+    AMAP[--update-blt]="--update-blt"
+    AMAP[--sync]="--sync"
+    AMAP[--status]="--status"
+    AMAP[--build]="--build"
+    AMAP[--clean-all]="--clean-all"
+    AMAP[--db-start]="--db-start"
+    AMAP[--db-list]="--db-list"
+    AMAP[--stop]="--stop"
+    AMAP[--start]="--start"
+    AMAP[--project]="--project"
+    AMAP[--enable]="--enable"
+    AMAP[--mvn-clean]="--mvn-clean"
+    AMAP[--sfm]="--sfm"
+    AMAP[--up]="--up"
+    AMAP[--stash]="--stash"
+
+    # BEFORE WE BUILD MAIN WE FIRST WANT TO
+    # REMOVE ANY ALREADY USED COMMAND/SUB-COMMAND FROM SUGGESTED COMPLETES
+    for arg in "${COMP_WORDS[@]}"
+    do
+        [ -n "$arg" ] && AMAP["$arg"]=""
+    done
+
+    AMAP[main]="${AMAP[--eclipse]} ${AMAP[--config]} ${AMAP[--update-blt]} ${AMAP[--sync]} ${AMAP[--status]} ${AMAP[--build]} ${AMAP[--clean-all]} ${AMAP[--db-start]} ${AMAP[--db-list]} ${AMAP[--stop]} ${AMAP[--start]} ${AMAP[--project]} ${AMAP[--enable]} ${AMAP[--mvn-clean]} ${AMAP[--sfm]} ${AMAP[--up]} ${AMAP[--stash]} force"
+
+    # BUILD EXPRESSION OPTIONS
+    # SPECIFIC TO --build
+    # BY MAKING EACH ITS OWN SUB-COMMAND WE CAN CHAIN TOGETHER
+    # EX: --build pre post --start OR --build pre compile post plsql
+    AMAP[pre]="pre"
+    AMAP[post]="post"
+    AMAP[compile]="compile"
+    AMAP[plsql]="plsql"
+
+    # SUB OPTS FOR NESTED COMMANDS
+    # ANY ARGUMENTS TO SUB COMMANDS GO HERE
+    AMAP[project_args]="app/main app/212/patch app/212/freeze app/212/prod"
+    AMAP[build_args]="${AMAP[pre]} ${AMAP[post]} ${AMAP[plsql]} ${AMAP[compile]}"
+    AMAP[status_args]="--sync"
+    AMAP[sync_args]="check"
+    AMAP[eclipse_args]="nobuild"
+    
+    # MAP ALL POSSIBLE COMMANDS WITH THEIR POSSIBLE ARGUMENTS
+
+    # --build
+    build_args="${AMAP[pre]} ${AMAP[post]} ${AMAP[plsql]} ${AMAP[compile]}"
+    CMAP[--build]="$build_args"
+    CMAP[pre]="$build_args"
+    CMAP[post]="$build_args"
+    CMAP[plsql]="$build_args"
+    CMAP[compile]="$build_args"
+
+    # --sync
+    CMAP[--sync]="${AMAP[sync_args]}"
+
+    # --project
+    CMAP[--project]="${AMAP[project_args]}"
+
+    # --status
+    CMAP[--status]="${AMAP[status_args]}"
+
+    # --eclipse
+    CMAP[--eclipse]="${AMAP[eclipse_args]}"
+
+
+    # GENERATE REPLIES
+    # RETURN ALL POSSIBLE SUGGESTIONS FOR CURRENT COMMAND ON SCREEN
+    # IF NO POSSIBLE SUGGESTIONS WERE FOUND THEN RETURN ALL UN-USED MAIN COMMANDS
+    if [ $COMP_CWORD -gt 0 ] ; then
+        opts=$(compgen -W "${CMAP["$prev"]}" -- ${cur})
+        if [ ${#opts} -gt 0 ] ; then
+            COMPREPLY=( $opts )
+        else
+            COMPREPLY=( $(compgen -W "${AMAP[main]}" -- ${cur}) )
+        fi
+        return 0
+    fi
+
+    return 0
+}
+complete -F _blt blt
