@@ -1,9 +1,24 @@
 #!/bin/bash
-
+# shutil - python
 # Place this script in /etc/bash_completion.d/
 # Source file in .profile(OSX) or .bashrc(Linux)
 # echo "source /etc/bash_completion.d/blt >> ~/(.profile|.bashrc)
 
+
+
+# TO ADD COMMANDS
+# 1) add to AMAP[<base command>]="<base_command>"
+# 2) add to AMAP[main]="... ${AMAP[<base_command>]}"
+# IF YOUR COMMAND HAS SUB-OPTIONS
+# 3) add to AMAP[<base_command>_args]="<arg1> <arg2>"
+# 4) add to CMAP[<base_command>]="${AMAP[base_command_args]}"
+
+# IF YOU WANT SUB-OPTIONS TO BEHAVE LIKE --build SUB-OPTIONS
+# 1) IN ADDITION TO STEPS 1 & 2 ABOVE
+#   add all sub-options to AMAP[<sub-option>]="<sub-option>"
+# INSTEAD OF SETP 3 ABOVE
+# 2) add to AMAP[<sub-option>_args]="${AMAP[<sub-option1>]} ${AMAP[<sub-option2>]}"
+# 3) add to CMAP[<base_command>]="${AMAP[base_command_args]}"
 _blt()
 {
     
@@ -43,15 +58,11 @@ _blt()
     AMAP[--sfm]="--sfm"
     AMAP[--up]="--up"
     AMAP[--stash]="--stash"
-
-    # BEFORE WE BUILD MAIN WE FIRST WANT TO
-    # REMOVE ANY ALREADY USED COMMAND/SUB-COMMAND FROM SUGGESTED COMPLETES
-    for arg in "${COMP_WORDS[@]}"
-    do
-        [ -n "$arg" ] && AMAP["$arg"]=""
-    done
-
-    AMAP[main]="${AMAP[--eclipse]} ${AMAP[--config]} ${AMAP[--update-blt]} ${AMAP[--sync]} ${AMAP[--status]} ${AMAP[--build]} ${AMAP[--clean-all]} ${AMAP[--db-start]} ${AMAP[--db-list]} ${AMAP[--stop]} ${AMAP[--start]} ${AMAP[--project]} ${AMAP[--enable]} ${AMAP[--mvn-clean]} ${AMAP[--sfm]} ${AMAP[--up]} ${AMAP[--stash]} force"
+    
+    # force CAN BE USED FOR MANY OPTIONS
+    # IT IS MAINTAINED AS A VARIABLE SO IT DOES NOT GET REMOVED FROM THE OPTIONS LIST
+    # ONLY IF IT WAS THE LAST WORK TYPED
+    force="force"
 
     # BUILD EXPRESSION OPTIONS
     # SPECIFIC TO --build
@@ -62,9 +73,28 @@ _blt()
     AMAP[compile]="compile"
     AMAP[plsql]="plsql"
 
+    # BEFORE WE BUILD MAIN WE FIRST WANT TO
+    # REMOVE ANY ALREADY USED COMMAND/SUB-COMMAND FROM SUGGESTED COMPLETES
+    for arg in "${COMP_WORDS[@]}"
+    do
+        [ -n "$arg" ] && AMAP["$arg"]=""
+    done
+
+    # IF FORCE IS LAST COMMAND, WE DO NOT RECCOMMEND IT AGAIN
+    # THIS PREVENTS force BEING SUGGESTED FOR force
+    # EX: --sync force force
+    if [ "$prev" == "$force" ] ; then
+        force=""
+    fi
+
+    AMAP[main]="${AMAP[--eclipse]} ${AMAP[--config]} ${AMAP[--update-blt]} ${AMAP[--sync]} ${AMAP[--status]} ${AMAP[--build]} ${AMAP[--clean-all]} ${AMAP[--db-start]} ${AMAP[--db-list]} ${AMAP[--stop]} ${AMAP[--start]} ${AMAP[--project]} ${AMAP[--enable]} ${AMAP[--mvn-clean]} ${AMAP[--sfm]} ${AMAP[--up]} ${AMAP[--stash]} $force"
+
+
     # SUB OPTS FOR NESTED COMMANDS
     # ANY ARGUMENTS TO SUB COMMANDS GO HERE
-    AMAP[project_args]="app/main app/212/patch app/212/freeze app/212/prod"
+    # Autgenerates projects:
+    # ls ~/blt/app | grep -E '^[0-9]+$' | awk '{print "app/" $1 "/patch " "app/" $1 "/freeze " "app/" $1 "/prod"} '
+    AMAP[project_args]="app/main $(ls ~/blt/app | grep -E '^[0-9]+$' | awk '{print "app/" $1 "/patch " "app/" $1 "/freeze " "app/" $1 "/prod"}')"
     AMAP[build_args]="${AMAP[pre]} ${AMAP[post]} ${AMAP[plsql]} ${AMAP[compile]}"
     AMAP[status_args]="--sync"
     AMAP[sync_args]="check"
